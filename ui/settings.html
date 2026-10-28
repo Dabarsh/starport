@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Starport Settings</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { overflow: hidden; }
+  .win { display: flex; height: 100vh; }
+  nav { width: 196px; flex-shrink: 0; background: var(--bg-sidebar); border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; }
+  nav a { height: 34px; border-radius: 6px; color: #C8C8C8; font-size: 14px; display: flex; align-items: center; gap: 10px; padding: 0 10px; }
+  nav a:hover { color: #FFFFFF; background: #2E2E2E; }
+  nav a svg { stroke: #B0B0B0; }
+  nav a.on { background: #3A3A3A; color: #FFFFFF; font-weight: 600; }
+  nav a.on svg { stroke: #FFFFFF; }
+  nav .foot { margin-top: auto; font-size: 12px; color: var(--text-4); padding: 0 10px; }
+
+  main { flex-grow: 1; min-width: 0; padding: 22px 28px 28px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; scroll-behavior: smooth; }
+  section { display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 22px; }
+  h2.eyebrow { font-size: 12px; }
+  .rule-line { height: 1px; background: var(--line); flex-shrink: 0; }
+  .grid { display: grid; grid-template-columns: 150px minmax(0, 1fr); column-gap: 16px; row-gap: 12px; align-items: center; }
+  .grid > .k, .grid > label { font-size: 14px; color: var(--text-2); }
+  .with-btn { display: flex; gap: 8px; }
+  .with-btn input { flex-grow: 1; min-width: 0; font-family: var(--mono); font-size: 12px; padding: 0 10px; }
+  .with-btn .pill { height: 32px; border-radius: 16px; }
+  .info { display: flex; gap: 8px; align-items: flex-start; background: #1E2A3A; border: 1px solid #2E4A6E; border-radius: 6px; padding: 8px 10px; font-size: 13px; color: #C9DDF5; line-height: 1.4; }
+  .info.bad { background: #3A2220; border-color: #6E3530; color: #F5D0CB; }
+  .info ol { margin: 6px 0 0; padding-left: 18px; }
+
+  .starpick { display: flex; gap: 2px; }
+  .starpick button { width: 32px; height: 32px; border: 0; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+  .starpick button:hover { background: #2C2C2C; }
+  .hint { font-size: 13px; color: var(--text-3); }
+  .seg { display: inline-flex; width: max-content; border: 1px solid var(--line-input); border-radius: 4px; overflow: hidden; }
+  .seg button { height: 30px; padding: 0 14px; border: 0; background: transparent; color: var(--text-3); font-size: 13px; font-weight: 600; }
+  .seg button + button { border-left: 1px solid var(--line-input); }
+  .seg button[aria-pressed="true"] { background: #4A4A4A; color: #FFFFFF; }
+  .opt { display: flex; align-items: center; gap: 10px; }
+
+  .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .num { display: flex; flex-direction: column; gap: 6px; }
+  .num label { font-size: 13px; color: var(--text-2); }
+  .num .field { display: flex; align-items: center; padding: 0 10px; gap: 6px; }
+  .num input { width: 100%; min-width: 0; background: transparent; border: 0; color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .num .unit { font-size: 13px; color: var(--text-4); }
+  .toggles .opt span { font-size: 14px; color: var(--text-2); }
+  .kv { display: grid; grid-template-columns: 150px minmax(0, 1fr); column-gap: 16px; row-gap: 8px; font-size: 13px; }
+  .kv .k { color: var(--text-2); font-size: 14px; }
+  .kv .v { font-family: var(--mono); font-size: 12px; color: var(--text-3); align-self: center; }
+  .kv .v.missing { font-family: inherit; color: var(--bad); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="win">
+  <nav aria-label="Settings sections">
+    <a href="#general" class="on" data-sec="general">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.8z"></path></svg>General</a>
+    <a href="#timing" data-sec="timing">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6"></path></svg>Timing</a>
+    <a href="#behavior" data-sec="behavior">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="7" width="18" height="10" rx="5"></rect><circle cx="16" cy="12" r="2.5"></circle></svg>Behavior</a>
+    <a href="#advanced" data-sec="advanced">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>Advanced</a>
+    <div class="foot">Starport 1.0 · Settings save automatically</div>
+  </nav>
+
+  <main id="main">
+    <section id="general">
+      <h2 class="eyebrow">Folders</h2>
+      <div class="grid">
+        <label for="src">Source folder</label>
+        <div class="with-btn">
+          <input id="src" class="field" readonly placeholder="Not chosen">
+          <button class="pill" onclick="send('chooseFolder', {key: 'source_folder'})">Choose…</button>
+        </div>
+        <label for="stg">Staging folder</label>
+        <div class="with-btn">
+          <input id="stg" class="field" readonly>
+          <button class="pill" onclick="send('chooseFolder', {key: 'staging_folder'})">Choose…</button>
+        </div>
+        <span></span>
+        <div class="info bad" id="problem" hidden></div>
+        <span id="problemGap" hidden></span>
+        <div class="info">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#78B6FA" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+          <div>
+            <span>Set Lightroom Classic Auto Import to watch this same folder. <a href="#" id="howLink" onclick="toggleHow(event)">How to set it up</a></span>
+            <ol id="how" hidden>
+              <li>In Lightroom Classic choose File › Auto Import › Auto Import Settings…</li>
+              <li>Set Watched Folder to the staging folder above. It must be empty the first time.</li>
+              <li>Pick a destination folder and any import preset, then turn on Enable Auto Import.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="rule-line"></div>
+
+    <section id="rule">
+      <h2 class="eyebrow">Rating rule</h2>
+      <div class="grid">
+        <span class="k">Minimum rating</span>
+        <div class="opt" style="gap: 12px">
+          <div class="starpick" role="group" aria-label="Minimum star rating" id="starpick"></div>
+          <span class="hint" id="ratingText"></span>
+        </div>
+        <span class="k">Match</span>
+        <div class="seg" role="group" aria-label="Match mode">
+          <button id="gte" onclick="set('match_mode', '>=')">At or above</button>
+          <button id="eq" onclick="set('match_mode', '==')">Exactly</button>
+        </div>
+        <span class="k">Include sidecars</span>
+        <div class="opt">
+          <button class="switch" role="switch" data-key="include_sidecars" aria-label="Include sidecars"></button>
+          <span class="hint">Copies .xmp files so RAW ratings carry into Lightroom</span>
+        </div>
+        <span class="k">RAW + JPEG pairs</span>
+        <div class="opt">
+          <button class="switch" role="switch" data-key="copy_pairs" aria-label="Copy both files of a pair"></button>
+          <span class="hint">Copy both if either one matches</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="rule-line"></div>
+
+    <section id="timing">
+      <h2 class="eyebrow">Timing</h2>
+      <div class="three">
+        <div class="num">
+          <label for="settle_seconds">Settle time</label>
+          <div class="field"><input id="settle_seconds" data-key="settle_seconds" inputmode="numeric"><span class="unit">sec</span></div>
+        </div>
+        <div class="num">
+          <label for="recheck_minutes">Re-check unrated every</label>
+          <div class="field"><input id="recheck_minutes" data-key="recheck_minutes" inputmode="numeric"><span class="unit">min</span></div>
+        </div>
+        <div class="num">
+          <label for="recheck_window_hours">Stop re-checking after</label>
+          <div class="field"><input id="recheck_window_hours" data-key="recheck_window_hours" inputmode="numeric"><span class="unit">hours</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="rule-line"></div>
+
+    <section id="behavior">
+      <h2 class="eyebrow">Behavior</h2>
+      <div class="three toggles">
+        <div class="opt"><button class="switch" role="switch" data-key="open_lrc" aria-label="Open Lightroom Classic after ingest"></button><span>Open Lightroom after ingest</span></div>
+        <div class="opt"><button class="switch" role="switch" data-key="launch_at_login" aria-label="Launch at login"></button><span>Launch at login</span></div>
+        <div class="opt"><button class="switch" role="switch" data-key="notifications" aria-label="Batch notifications"></button><span>Batch notifications</span></div>
+      </div>
+    </section>
+
+    <div class="rule-line"></div>
+
+    <section id="advanced">
+      <h2 class="eyebrow">Advanced</h2>
+      <div class="three">
+        <div class="num">
+          <label for="lrc_debounce_seconds">Batch ends after quiet for</label>
+          <div class="field"><input id="lrc_debounce_seconds" data-key="lrc_debounce_seconds" inputmode="numeric"><span class="unit">sec</span></div>
+        </div>
+      </div>
+      <div class="kv">
+        <span class="k">ExifTool</span><span class="v ellipsis" id="exiftool"></span>
+        <span class="k">Lightroom Classic</span><span class="v ellipsis" id="lightroom"></span>
+        <span class="k">Database</span><span class="v ellipsis" id="db"></span>
+      </div>
+      <div class="actions">
+        <button class="pill" onclick="send('revealData')">Reveal data folder</button>
+        <button class="pill" onclick="send('clearHistory')">Clear ingest history…</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="bridge.js"></script>
+<script>
+  let S = null;
+
+  function set(key, value) { send("set", { key: key, value: value }); }
+
+  function toggleHow(e) {
+    e.preventDefault();
+    $("#how").hidden = !$("#how").hidden;
+    $("#howLink").textContent = $("#how").hidden ? "How to set it up" : "Hide steps";
+  }
+
+  function stars(n) { return n + (n === 1 ? " star" : " stars"); }
+
+  function drawStars(r) {
+    const box = $("#starpick");
+    box.innerHTML = [1, 2, 3, 4, 5].map((n) => {
+      const on = n <= r;
+      return '<button aria-label="' + stars(n) + '" aria-pressed="' + (n === r) + '" data-n="' + n + '">' +
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="' + (on ? "#F2B533" : "none") + '" stroke="' + (on ? "#F2B533" : "#6A6A6A") +
+        '" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="' + STAR_PATH + '"></path></svg></button>';
+    }).join("");
+  }
+
+  $("#starpick").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (b) set("min_rating", Number(b.dataset.n));
+  });
+  $("#starpick").addEventListener("mouseover", (e) => {
+    const b = e.target.closest("button");
+    if (b) drawHover(Number(b.dataset.n));
+  });
+  $("#starpick").addEventListener("mouseleave", () => S && drawHover(S.min_rating));
+  function drawHover(r) {
+    $$("#starpick button").forEach((b) => {
+      const on = Number(b.dataset.n) <= r;
+      const p = $("svg", b);
+      p.setAttribute("fill", on ? "#F2B533" : "none");
+      p.setAttribute("stroke", on ? "#F2B533" : "#6A6A6A");
+    });
+  }
+
+  $$(".switch").forEach((sw) => sw.addEventListener("click", () => {
+    const on = sw.getAttribute("aria-checked") !== "true";
+    sw.setAttribute("aria-checked", String(on));
+    set(sw.dataset.key, on);
+  }));
+
+  $$("input[data-key]").forEach((inp) => {
+    const commit = () => {
+      const n = parseInt(inp.value, 10);
+      if (Number.isFinite(n)) set(inp.dataset.key, n);
+      else if (S) inp.value = S[inp.dataset.key];
+    };
+    inp.addEventListener("change", commit);
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") inp.blur(); });
+    inp.addEventListener("input", () => { inp.value = inp.value.replace(/[^0-9]/g, ""); });
+  });
+
+  // Highlight the section in view.
+  const main = $("#main");
+  main.addEventListener("scroll", () => {
+    const top = main.scrollTop + 40;
+    let current = "general";
+    for (const id of ["general", "timing", "behavior", "advanced"]) {
+      if (document.getElementById(id).offsetTop - main.offsetTop <= top) current = id;
+    }
+    if (main.scrollTop + main.clientHeight >= main.scrollHeight - 2) current = "advanced";
+    $$("nav a").forEach((a) => a.classList.toggle("on", a.dataset.sec === current));
+  });
+
+  window.render = function (st) {
+    S = st.settings;
+    $("#src").value = st.source;
+    $("#src").title = S.source_folder;
+    $("#stg").value = st.staging;
+    $("#stg").title = S.staging_folder;
+    const problem = (st.problems || [])[0] || "";
+    $("#problem").hidden = !problem;
+    $("#problemGap").hidden = !problem;
+    $("#problem").textContent = problem;
+
+    drawStars(S.min_rating);
+    const r = S.min_rating, gte = S.match_mode === ">=";
+    $("#ratingText").textContent = gte ? (r === 5 ? "Only 5 stars" : stars(r) + " and up") : "Exactly " + stars(r);
+    $("#gte").setAttribute("aria-pressed", String(gte));
+    $("#eq").setAttribute("aria-pressed", String(!gte));
+
+    $$(".switch").forEach((sw) => sw.setAttribute("aria-checked", String(!!S[sw.dataset.key])));
+    $$("input[data-key]").forEach((inp) => {
+      if (document.activeElement !== inp) inp.value = S[inp.dataset.key];
+    });
+
+    const tool = (id, v, missing) => {
+      const el = $(id);
+      el.textContent = v || missing;
+      el.title = v || "";
+      el.classList.toggle("missing", !v);
+    };
+    tool("#exiftool", st.exiftool, "Not found. Install ExifTool or bundle it in resources/exiftool");
+    tool("#lightroom", st.lightroom, "Not found. Files will still be copied");
+    tool("#db", st.db, "");
+  };
+</script>
+</body>
+</html>

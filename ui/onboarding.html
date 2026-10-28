@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Set up Starport</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { overflow: hidden; }
+  .win { height: 100vh; display: flex; flex-direction: column; padding: 28px 36px 24px; gap: 22px; }
+  .top { display: flex; align-items: center; gap: 16px; }
+  .logo { width: 52px; height: 52px; border-radius: 12px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  h1 { margin: 0; font-size: 24px; font-weight: 700; }
+  .top p { margin: 2px 0 0; font-size: 14px; color: var(--text-3); }
+  .steps { display: flex; flex-direction: column; border: 1px solid var(--line-tile); border-radius: 8px; overflow: hidden; }
+  .step { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--bg-sidebar); }
+  .step + .step { border-top: 1px solid var(--line-tile); }
+  .step.current { background: #282C33; }
+  .badge { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line-button); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; font-weight: 700; color: var(--text-4); }
+  .step.current .badge { border-color: var(--link); color: var(--link-hover); }
+  .step.done .badge { border: 0; background: #2D7D5A; }
+  .txt { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .txt b { font-size: 15px; font-weight: 600; }
+  .step:not(.done):not(.current) .txt b { color: #C8C8C8; }
+  .txt span { font-size: 13px; color: var(--text-3); }
+  .txt span.mono { font-size: 12px; }
+  .txt span.bad { color: var(--bad); }
+  .foot { margin-top: auto; display: flex; align-items: center; gap: 10px; }
+  .foot .where { font-size: 13px; color: var(--text-4); flex-grow: 1; }
+  .foot .pill { height: 32px; border-radius: 16px; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="top">
+    <div class="logo">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.8z"></path></svg>
+    </div>
+    <div>
+      <h1>Set up Starport</h1>
+      <p>Only your keepers reach Lightroom. Originals are never moved or changed.</p>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step" id="s1">
+      <span class="badge">1</span>
+      <div class="txt"><b>Choose a source folder</b><span id="s1d">The card, drive or folder your photos land in</span></div>
+      <button class="pill" id="s1b" onclick="send('chooseFolder', {key: 'source_folder'})">Choose…</button>
+    </div>
+    <div class="step" id="s2">
+      <span class="badge">2</span>
+      <div class="txt"><b>Allow folder access</b><span id="s2d">Needed to read ratings on external drives and cards</span></div>
+      <button class="pill" id="s2b" onclick="send('openPrivacy')">Open System Settings</button>
+    </div>
+    <div class="step" id="s3">
+      <span class="badge">3</span>
+      <div class="txt"><b>Point Lightroom Auto Import here</b><span class="mono ellipsis" id="s3d"></span></div>
+      <button class="pill" id="s3b" onclick="send('copyStaging')">Copy path</button>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="where" id="where">Step 1 of 3</span>
+    <button class="pill quiet" id="back" onclick="send('openSettings')">More settings</button>
+    <button class="pill primary" id="start" onclick="send('finishSetup')" disabled>Start watching</button>
+  </div>
+</div>
+
+<script src="bridge.js"></script>
+<script>
+  const CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
+
+  function mark(id, n, done, current) {
+    const el = $("#" + id);
+    el.classList.toggle("done", done);
+    el.classList.toggle("current", current);
+    $(".badge", el).innerHTML = done ? CHECK : String(n);
+  }
+
+  window.render = function (st) {
+    const ob = st.onboarding;
+    const d1 = !!st.settings.source_folder && !ob.problem;
+    const d2 = d1 && ob.readable;
+    const d3 = ob.copied;
+    const cur = !d1 ? 1 : !d2 ? 2 : !d3 ? 3 : 0;
+    mark("s1", 1, d1, cur === 1);
+    mark("s2", 2, d2, cur === 2);
+    mark("s3", 3, d3, cur === 3);
+
+    const s1d = $("#s1d");
+    s1d.textContent = ob.problem || st.source || "The card, drive or folder your photos land in";
+    s1d.className = ob.problem ? "bad" : st.source ? "mono ellipsis" : "";
+    $("#s1b").textContent = st.settings.source_folder ? "Change" : "Choose…";
+    $("#s1b").className = "pill" + (cur === 1 ? " primary" : "");
+
+    $("#s2d").textContent = !d1 ? "Needed to read ratings on external drives and cards"
+      : d2 ? "Starport can read this folder" : "Starport can't read this folder yet. Allow access, then come back";
+    $("#s2b").textContent = d2 ? "Open System Settings" : "Open System Settings";
+    $("#s2b").className = "pill" + (cur === 2 ? " primary" : "");
+    $("#s2b").hidden = d2;
+
+    $("#s3d").textContent = st.staging;
+    $("#s3b").textContent = d3 ? "Copied" : "Copy path";
+    $("#s3b").className = "pill" + (cur === 3 ? " primary" : "");
+
+    $("#where").textContent = cur ? "Step " + cur + " of 3" : "Ready";
+    $("#start").disabled = !(d1 && d2);
+  };
+
+  window.addEventListener("focus", () => send("recheckAccess"));
+</script>
+</body>
+</html>

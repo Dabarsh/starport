@@ -1,0 +1,6 @@
+watchdog>=4.0
+pyobjc-core>=10.3
+pyobjc-framework-Cocoa>=10.3
+pyobjc-framework-WebKit>=10.3
+pyobjc-framework-ServiceManagement>=10.3
+pyobjc-framework-Quartz>=10.3

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Log</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { overflow: hidden; }
+  .win { display: flex; flex-direction: column; height: 100vh; }
+  .bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--bg-bar); flex-wrap: wrap; }
+  .filters { display: flex; gap: 6px; }
+  .filters button { height: 28px; padding: 0 12px; border-radius: 14px; border: 1px solid var(--line-input); background: transparent; color: var(--text-2); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .filters button span { font-weight: 400; opacity: 0.8; font-variant-numeric: tabular-nums; }
+  .filters button[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
+  .search { display: flex; align-items: center; gap: 8px; height: 30px; width: 220px; background: var(--bg-input); border: 1px solid var(--line-input); border-radius: 15px; padding: 0 12px; margin-left: auto; }
+  .search:focus-within { border-color: var(--link); }
+  .search input { flex-grow: 1; min-width: 0; background: transparent; border: 0; color: var(--text); font-size: 13px; }
+
+  .cols { display: grid; grid-template-columns: 90px 96px minmax(0, 1fr) 96px minmax(160px, 0.8fr); column-gap: 12px; align-items: center; padding: 0 16px; }
+  .head { padding-top: 8px; padding-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-4); border-bottom: 1px solid var(--line); }
+  .rows { flex-grow: 1; overflow-y: auto; }
+  .r { height: 36px; font-size: 13px; }
+  .r:nth-child(even) { background: #212121; }
+  .r .t { font-family: var(--mono); font-size: 12px; color: var(--text-3); white-space: nowrap; }
+  .r .ev { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+  .r .ev i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .r .f { font-family: var(--mono); font-size: 12px; color: #E0E0E0; -webkit-user-select: text; user-select: text; }
+  .r .d { color: var(--text-3); }
+  .r .na { color: var(--text-4); }
+  .none { padding: 40px 16px; text-align: center; color: var(--text-3); font-size: 14px; }
+  .foot { height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-top: 1px solid var(--line); background: var(--bg-bar); font-size: 12px; color: var(--text-4); }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar">
+    <div class="filters" role="group" aria-label="Filter events" id="filters"></div>
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A0A0A0" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+      <input id="q" aria-label="Search files" placeholder="Search files">
+    </div>
+    <button class="pill" onclick="send('exportLog')">Export</button>
+  </div>
+  <div class="cols head"><span>Time</span><span>Event</span><span>File</span><span>Rating</span><span>Detail</span></div>
+  <div class="rows" id="rows"></div>
+  <div class="foot">
+    <span>Showing the 200 most recent events</span>
+    <a href="#" onclick="event.preventDefault(); send('revealDb')">Reveal database in Finder</a>
+  </div>
+</div>
+
+<script src="bridge.js"></script>
+<script>
+  const KIND = {
+    copied: { label: "Copied", color: "#5BB8F5", group: "copied" },
+    recheck: { label: "Re-check", color: "#C6A6FF", group: "copied" },
+    skipped: { label: "Skipped", color: "#A8A8A8", group: "skipped" },
+    error: { label: "Error", color: "#FF7B6B", group: "errors" },
+    warning: { label: "Warning", color: "#E6A23C", group: "errors" },
+    info: { label: "Info", color: "#A8A8A8", group: "info" },
+  };
+  const FILTERS = [["all", "All"], ["copied", "Copied"], ["skipped", "Skipped"], ["errors", "Errors"]];
+  let events = [];
+  let filter = "all";
+
+  function time(ts) {
+    const d = new Date(ts * 1000);
+    const hms = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+    if (d.toDateString() === new Date().toDateString()) return hms;
+    return d.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + hms.slice(0, 5);
+  }
+
+  function ratingCell(e) {
+    if (e.rating === -1) return '<span class="na">Rejected</span>';
+    if (e.rating == null) {
+      return e.kind === "skipped" ? starText(0) : '<span class="na">—</span>';
+    }
+    return starText(e.rating);
+  }
+
+  function draw() {
+    const counts = { all: events.length, copied: 0, skipped: 0, errors: 0 };
+    events.forEach((e) => { const g = (KIND[e.kind] || KIND.info).group; if (g in counts) counts[g]++; });
+    $("#filters").innerHTML = FILTERS.map(([id, label]) =>
+      '<button aria-pressed="' + (id === filter) + '" data-f="' + id + '">' + label + "<span>" + counts[id] + "</span></button>"
+    ).join("");
+
+    const q = $("#q").value.trim().toLowerCase();
+    const shown = events.filter((e) => {
+      const k = KIND[e.kind] || KIND.info;
+      if (filter !== "all" && k.group !== filter) return false;
+      return !q || e.file.toLowerCase().includes(q) || (e.detail || "").toLowerCase().includes(q);
+    });
+    $("#rows").innerHTML = shown.length ? shown.map((e) => {
+      const k = KIND[e.kind] || KIND.info;
+      return '<div class="cols r">' +
+        '<span class="t">' + time(e.ts) + "</span>" +
+        '<span class="ev" style="color:' + k.color + '"><i></i>' + k.label + "</span>" +
+        '<span class="f ellipsis" title="' + esc(e.file) + '">' + esc(e.file) + "</span>" +
+        "<span>" + ratingCell(e) + "</span>" +
+        '<span class="d ellipsis" title="' + esc(e.detail) + '">' + esc(e.detail) + "</span></div>";
+    }).join("") : '<div class="none">' + (events.length ? "No matching events" : "Nothing yet. Events appear here as files arrive.") + "</div>";
+  }
+
+  $("#filters").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (b) { filter = b.dataset.f; draw(); }
+  });
+  $("#q").addEventListener("input", draw);
+
+  window.render = function (st) {
+    events = st.events || [];
+    draw();
+  };
+</script>
+</body>
+</html>

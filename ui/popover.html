@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Starport</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { background: var(--bg-popover); overflow: hidden; }
+  .pop { width: 340px; height: 620px; display: flex; flex-direction: column; }
+  .section { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--line); }
+
+  .head { display: flex; align-items: center; gap: 10px; padding: 14px 14px 12px 16px; border-bottom: 1px solid var(--line); }
+  .logo { width: 30px; height: 30px; border-radius: 7px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .who { display: flex; flex-direction: column; flex-grow: 1; gap: 1px; min-width: 0; }
+  .who b { font-size: 15px; font-weight: 700; letter-spacing: 0.1px; }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-3); min-width: 0; }
+  .status span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--ok); }
+  .dot.working { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+  .toggle { height: 30px; padding: 0 12px; border-radius: 15px; border: 1px solid #4A4A4A; background: #2C2C2C; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .toggle:hover { background: #363636; }
+
+  .rule { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .rule .stars { font-size: 15px; }
+  .rule-text { color: var(--text-3); }
+  .paths { display: grid; grid-template-columns: 52px minmax(0, 1fr); row-gap: 6px; font-size: 12px; align-items: center; }
+  .paths .k { color: var(--text-4); }
+  .paths .v { font-family: var(--mono); color: var(--text-2); }
+
+  .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .when { font-size: 12px; color: var(--text-4); }
+  .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .tile { background: var(--bg-tile); border: 1px solid var(--line-tile); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .tile b { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tile span { font-size: 12px; color: var(--text-3); }
+  .tile.bad b { color: var(--bad); }
+  .note { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); }
+  .empty { font-size: 13px; color: var(--text-3); }
+
+  .menu { padding: 6px; display: flex; flex-direction: column; flex-grow: 1; }
+  .item { height: 34px; border: 0; border-radius: 6px; background: transparent; font-size: 14px; display: flex; align-items: center; gap: 10px; padding: 0 14px; }
+  .item:hover { background: #2E2E2E; }
+  .item .label { flex-grow: 1; text-align: left; }
+  .item .key { font-size: 12px; color: var(--text-4); }
+  .item.primary { background: var(--accent); color: #FFFFFF; font-weight: 600; padding: 0 10px; margin: 4px 4px 6px; }
+  .item.primary:hover { background: var(--accent-hover); }
+  .item.primary .key { color: #FFFFFF; opacity: 0.85; }
+  .item:disabled { opacity: 0.45; }
+  .sep { height: 1px; background: var(--line); margin: 6px 8px; }
+  .alert { display: flex; gap: 8px; align-items: flex-start; background: #3A2220; border: 1px solid #6E3530; border-radius: 6px; padding: 8px 10px; font-size: 12px; color: #F5D0CB; }
+</style>
+</head>
+<body>
+<div class="pop">
+  <div class="head">
+    <div class="logo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.8z"></path></svg>
+    </div>
+    <div class="who">
+      <b>Starport</b>
+      <div class="status"><span class="dot" id="dot"></span><span id="statusLabel">Starting…</span></div>
+    </div>
+    <button class="toggle" id="pause" onclick="send('togglePause')">
+      <svg id="icoPlay" hidden width="12" height="12" viewBox="0 0 24 24" fill="#E8E8E8" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg>
+      <svg id="icoPause" width="12" height="12" viewBox="0 0 24 24" fill="#E8E8E8" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1"></rect><rect x="14" y="4" width="5" height="16" rx="1"></rect></svg>
+      <span id="pauseLabel">Pause</span>
+    </button>
+  </div>
+
+  <div class="section">
+    <h2 class="eyebrow">Rule</h2>
+    <div class="rule"><span id="ruleStars"></span><span class="rule-text" id="ruleText"></span></div>
+    <div class="paths">
+      <span class="k">From</span><span class="v ellipsis" id="from"></span>
+      <span class="k">To</span><span class="v ellipsis" id="to"></span>
+    </div>
+    <div class="alert" id="problem" hidden>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF7B6B" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6M12 16.5v.01"></path></svg>
+      <span id="problemText"></span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="row">
+      <h2 class="eyebrow">Last batch</h2>
+      <div class="when" id="when"></div>
+    </div>
+    <div class="tiles" id="tiles">
+      <div class="tile"><b id="copied">0</b><span>Copied</span></div>
+      <div class="tile"><b id="skipped">0</b><span>Skipped</span></div>
+      <div class="tile" id="errTile"><b id="errors">0</b><span>Errors</span></div>
+    </div>
+    <div class="empty" id="noBatch" hidden>No batches yet. New photos in the source folder show up here.</div>
+    <div class="note" id="recheck" hidden>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B0B0B0" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"></path><path d="M20 4v5h-5"></path></svg>
+      <span id="recheckText"></span>
+    </div>
+  </div>
+
+  <div class="menu">
+    <button class="item primary" id="ingest" onclick="send('ingestNow')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"></path><path d="M7 10l5 5 5-5"></path><path d="M5 20h14"></path></svg>
+      <span class="label">Ingest now</span><span class="key">⌘I</span>
+    </button>
+    <button class="item" onclick="send('openStaging')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0B0B0" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h6l2 2h10v11H3z"></path></svg>
+      <span class="label">Open staging folder</span>
+    </button>
+    <button class="item" onclick="send('openLightroom')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0B0B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M8 15l3-3 2 2 3-4"></path></svg>
+      <span class="label">Open Lightroom Classic</span>
+    </button>
+    <button class="item" onclick="send('openLog')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0B0B0" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"></path></svg>
+      <span class="label">Log</span><span class="key">⌘L</span>
+    </button>
+    <button class="item" onclick="send('openSettings')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0B0B0" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg>
+      <span class="label">Settings…</span><span class="key">⌘,</span>
+    </button>
+    <div class="sep"></div>
+    <button class="item" onclick="send('quit')">
+      <span style="width: 16px"></span><span class="label">Quit Starport</span><span class="key">⌘Q</span>
+    </button>
+  </div>
+</div>
+
+<script src="bridge.js"></script>
+<script>
+  const DOT = { idle: "#3CC88E", working: "#5BB8F5", paused: "#E6A23C", error: "#FF7B6B" };
+
+  function when(ts) {
+    const d = new Date(ts * 1000);
+    const now = new Date();
+    const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const y = new Date(now); y.setDate(now.getDate() - 1);
+    if (d.toDateString() === now.toDateString()) return "Today, " + time;
+    if (d.toDateString() === y.toDateString()) return "Yesterday, " + time;
+    return d.toLocaleDateString([], { month: "short", day: "numeric" }) + ", " + time;
+  }
+
+  window.render = function (st) {
+    const s = st.settings;
+    const dot = $("#dot");
+    dot.style.background = DOT[st.status] || DOT.idle;
+    dot.classList.toggle("working", st.status === "working");
+    $("#statusLabel").textContent = st.label;
+
+    const paused = s.paused;
+    $("#icoPlay").hidden = !paused;
+    $("#icoPause").hidden = paused;
+    $("#pauseLabel").textContent = paused ? "Resume" : "Pause";
+    $("#pause").disabled = !s.onboarded;
+
+    $("#ruleStars").innerHTML = starText(s.min_rating);
+    $("#ruleText").textContent = st.rule;
+    $("#from").textContent = st.source || "No source folder";
+    $("#from").title = st.source;
+    $("#to").textContent = st.staging;
+    $("#to").title = st.staging;
+
+    const problem = st.status === "error" ? st.label : "";
+    $("#problem").hidden = !problem;
+    $("#problemText").textContent = problem;
+
+    const b = st.lastBatch;
+    $("#tiles").hidden = !b;
+    $("#noBatch").hidden = !!b;
+    $("#when").textContent = b ? when(b.finished) : "";
+    if (b) {
+      $("#copied").textContent = b.copied;
+      $("#skipped").textContent = b.skipped;
+      $("#errors").textContent = b.errors;
+      $("#errTile").classList.toggle("bad", b.errors > 0);
+    }
+
+    const r = st.recheck;
+    $("#recheck").hidden = !r.count;
+    if (r.count) {
+      $("#recheckText").textContent =
+        r.count + " skipped file" + (r.count === 1 ? "" : "s") + " re-checking every " + r.every + " min · " + r.hoursLeft + " h left";
+    }
+    $("#ingest").disabled = !s.source_folder;
+  };
+
+  document.addEventListener("keydown", (e) => {
+    if (!e.metaKey) return;
+    const k = e.key.toLowerCase();
+    const map = { i: "ingestNow", l: "openLog", ",": "openSettings", q: "quit" };
+    if (map[k]) { e.preventDefault(); send(map[k]); }
+  });
+</script>
+</body>
+</html>
