@@ -1,0 +1,4 @@
+# Keep LF everywhere (shell scripts break with CRLF), whatever core.autocrlf says.
+* text=auto eol=lf
+*.icns binary
+*.png binary

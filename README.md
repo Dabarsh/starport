@@ -2,12 +2,22 @@
 
 A macOS menu bar app that watches a folder, picks out photos at or above a star rating, copies them (with their `.xmp` sidecars) into a staging folder, and opens Lightroom Classic so Auto Import can bring them in. Originals are never moved, renamed, changed or deleted.
 
+## Install
+
+1. Download `Starport-<version>.dmg` from [Releases](https://github.com/Dabarsh/starport/releases), open it and drag Starport to Applications. The app is universal (Apple Silicon and Intel) and needs macOS 13 or later. ExifTool is built in.
+2. The app is ad-hoc signed, not notarized, so macOS blocks it on first launch. Open it once, then go to System Settings › Privacy & Security and click **Open Anyway**. Or run:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Starport.app
+   ```
+3. Starport lives in the menu bar (no Dock icon). The first launch opens setup.
+
 ## Run from source
 
 ```bash
 python3.12 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
-brew install exiftool          # or bundle it: scripts/fetch_exiftool.sh 13.10
+scripts/fetch_exiftool.sh      # bundles ExifTool (or: brew install exiftool)
 .venv/bin/python app.py
 ```
 
@@ -23,10 +33,18 @@ Development helpers:
 ## Build the app
 
 ```bash
-scripts/fetch_exiftool.sh 13.10      # bundle ExifTool into resources/exiftool
-.venv/bin/python setup.py py2app     # dist/Starport.app
-codesign --deep --force --options runtime -s "Developer ID Application: …" dist/Starport.app
+scripts/build.sh
 ```
+
+The script:
+1. Downloads the latest ExifTool into `resources/exiftool` and checks it against the published SHA-256.
+2. Swaps in watchdog's universal2 wheel so the bundle runs on both architectures, and runs the tests.
+3. Builds with py2app, checks every native binary is universal, and signs the app.
+4. Writes `dist/Starport-<version>.dmg`, `.zip` and `SHA256SUMS.txt`.
+
+The build runs in `~/Library/Caches/Starport-build`, because iCloud-synced folders such as the Desktop add file attributes that `codesign` rejects. The version lives in `version.py`, and `scripts/make_icon.py` redraws `resources/Starport.icns`.
+
+The default build is ad-hoc signed. For a Developer ID build, set `SIGN_IDENTITY="Developer ID Application: Name (TEAMID)"`. Add `NOTARY_PROFILE=<keychain profile>` to also notarize and staple the DMG.
 
 From a bundle, Launch at login uses `SMAppService`. Run from source, it writes `~/Library/LaunchAgents/com.starport.app.plist`.
 
@@ -57,8 +75,10 @@ lrc.py          find/open Lightroom Classic, debounce
 settings.py     defaults, load/save JSON
 db.py           SQLite helpers
 cli.py          headless runner
+version.py      app version
 ui/             popover, settings, log and first-run pages
-resources/exiftool/   bundled ExifTool (fetched, not committed)
+resources/      app icon; exiftool/ holds the bundled ExifTool (fetched, not committed)
+scripts/        build.sh, fetch_exiftool.sh, make_icon.py, entitlements.plist
 tests/
 setup.py        py2app config
 ```

@@ -20,6 +20,7 @@ import settings as settings_mod
 from db import DB
 from ingest import Ingestor, Result, stars
 from settings import Settings
+from version import VERSION
 from watcher import Watcher
 
 
@@ -311,6 +312,7 @@ class Engine:
             "exiftool": self.exiftool,
             "lightroom": self.lightroom,
             "db": self.db.path,
+            "version": VERSION,
         }
 
     def events(self, limit: int = 200) -> list[dict]:

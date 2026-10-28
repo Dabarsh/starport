@@ -1,10 +1,12 @@
 """Build Starport.app:  python setup.py py2app
 
-Bundle ExifTool first (scripts/fetch_exiftool.sh) so users don't need to install it.
-Sign afterwards:  codesign --deep --force --options runtime -s "Developer ID Application: ..." dist/Starport.app
+Use scripts/build.sh: it bundles ExifTool, makes watchdog universal, runs the tests, builds,
+signs and packages dist/Starport-<version>.dmg and .zip.
 """
 
 from setuptools import setup
+
+from version import BUILD, VERSION
 
 APP = ["app.py"]
 DATA_FILES = [
@@ -12,6 +14,7 @@ DATA_FILES = [
 ]
 OPTIONS = {
     "argv_emulation": False,
+    "iconfile": "resources/Starport.icns",
     "resources": ["resources/exiftool"],
     "includes": ["watchdog.observers.fsevents"],
     "packages": ["watchdog"],
@@ -19,8 +22,8 @@ OPTIONS = {
         "CFBundleName": "Starport",
         "CFBundleDisplayName": "Starport",
         "CFBundleIdentifier": "com.starport.app",
-        "CFBundleShortVersionString": "1.0",
-        "CFBundleVersion": "1",
+        "CFBundleShortVersionString": VERSION,
+        "CFBundleVersion": BUILD,
         "LSUIElement": True,  # menu bar only, no Dock icon
         "LSMinimumSystemVersion": "13.0",
         "NSHumanReadableCopyright": "",
@@ -32,4 +35,4 @@ OPTIONS = {
     },
 }
 
-setup(app=APP, name="Starport", data_files=DATA_FILES, options={"py2app": OPTIONS}, setup_requires=["py2app"])
+setup(app=APP, name="Starport", version=VERSION, data_files=DATA_FILES, options={"py2app": OPTIONS})
